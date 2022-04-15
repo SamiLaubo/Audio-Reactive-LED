@@ -10,8 +10,8 @@
 #define PRINT_FPS 1
 
 // Wifi and socket settings
-const char* SSID     = "Get-34D521";    // Wifi SSID
-const char* PASSWORD = "AGB7R877GC";    // Wifi PASSWORD 
+const char* SSID     = "";    // Wifi SSID
+const char* PASSWORD = "";    // Wifi PASSWORD 
 unsigned int LOCAL_PORT = 7777;          // Local port - choose yourself
 
 // Network setting
