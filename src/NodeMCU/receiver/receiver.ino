@@ -9,9 +9,9 @@
 
 
 // Wifi and socket settings
-const char* SSID     = "Get-2G-34D521";    // Wifi SSID - NB: Must be 2GHz wifi
-const char* PASSWORD = "AGB7R877GC";    // Wifi password - Blank if open network 
-unsigned int LOCAL_PORT = 7777;          // Local port - choose yourself
+const char* SSID     = "Get-2G-34D521";      // Wifi SSID - NB: Must be 2GHz wifi
+const char* PASSWORD = "AGB7R877GC";  // Wifi password - Blank if open network 
+unsigned int LOCAL_PORT = 7777;     // Local port - choose yourself
 
 
 // Network setting
@@ -22,11 +22,11 @@ IPAddress SUBNET(255, 255, 255, 0); // Routers subnet (obtain by "ipconfig" in t
 
 
 // LED and buffer
-constexpr int PIN = 3;              // Output pin for led strip
+constexpr int PIN = 3;              // Output pin for led strip (RX-pin)
 constexpr int NUM_LEDS = 300;       // Number of individuall LED lights
 constexpr int BUFFER_LEN = 1024;    // Length of buffer
 char PACKET_BUFFER[BUFFER_LEN];     // Buffer
-uint16_t N = 0;                      // Variable for later use
+uint16_t N = 0;                     // Variable for later use
 
 NeoPixelBus<NeoGrbFeature, Neo800KbpsMethod> ledstrip_audio(NUM_LEDS, PIN);
 
@@ -84,10 +84,8 @@ void loop() {
 
         for(int i = 0; i < len; i+=5) {
             PACKET_BUFFER[len] = 0;
-            // N = PACKET_BUFFER[i];   // N is the pixel number
-            // RgbColor pixel((uint8_t)PACKET_BUFFER[i+1], (uint8_t)PACKET_BUFFER[i+2], (uint8_t)PACKET_BUFFER[i+3]); // color
-            N = ((PACKET_BUFFER[i] << 8) + PACKET_BUFFER[i + 1]);
-            RgbColor pixel((uint8_t)PACKET_BUFFER[i+2], (uint8_t)PACKET_BUFFER[i+3], (uint8_t)PACKET_BUFFER[i+4]);
+            N = ((PACKET_BUFFER[i] << 8) + PACKET_BUFFER[i + 1]);   // N is the pixel number
+            RgbColor pixel((uint8_t)PACKET_BUFFER[i+2], (uint8_t)PACKET_BUFFER[i+3], (uint8_t)PACKET_BUFFER[i+4]);  // Color
             ledstrip_audio.SetPixelColor(N, pixel);   
         } 
 

@@ -22,9 +22,12 @@ def _update_esp8266():
         for i in packet_indices:
             m.append(i >> 8)    # Index of pixel to change - 100-place
             m.append(i & 0xff)  # Index of pixel to change - rest
-            m.append(255 * (i < 100))   # Pixel red value
-            m.append(255 * (i < 200 and i > 100))   # Pixel green value
-            m.append(255 * (i < 300 and i > 200))   # Pixel blue value
+            # m.append(255 * (i < 100))   # Pixel red value
+            # m.append(255 * (i < 200 and i > 100))   # Pixel green value
+            # m.append(255 * (i < 300 and i > 200))   # Pixel blue value
+            m.append(10)   # Pixel red value
+            m.append(0)   # Pixel green value
+            m.append(0)   # Pixel blue value
         m = bytes(m)
         _sock.sendto(m, (config.UDP_IP, config.UDP_PORT))
 

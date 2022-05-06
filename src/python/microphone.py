@@ -2,6 +2,7 @@ import time
 import numpy as np
 import pyaudio
 import config
+import click
 
 
 def start_stream(callback):
@@ -16,8 +17,14 @@ def start_stream(callback):
                     input_device_index=1)
     overflows = 0
     prev_ovf_time = time.time()
+
     while True:
         try:
+            if time.time() - config.switch_mode_time > 10:
+                click.next()
+                config.switch_mode_time = time.time()
+                print("Switch mode")
+
             y = np.fromstring(stream.read(frames_per_buffer, exception_on_overflow=False), dtype=np.int16)
             y = y.astype(np.float32)
             stream.read(stream.get_read_available(), exception_on_overflow=False)

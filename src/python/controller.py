@@ -95,9 +95,17 @@ def visualize_scroll(y):
 
 
 scroller = np.int32(0)
+background_scroller = np.int32(0)
+
+# Standard light in the background
+background_light = np.tile(0, (3, config.N_PIXELS))
+background_light[0, :] = gaussian_filter1d(50 * np.clip(np.sin(np.linspace(0, 2 * np.pi, config.N_PIXELS)), 0, 1), sigma=10)
+background_light[1, :] = gaussian_filter1d(10 * np.clip(np.sin(np.linspace(0, 10 * np.pi, config.N_PIXELS)), 0, 1), sigma=4)
+background_light[2, :] = gaussian_filter1d(10 * np.clip(np.sin(np.linspace(0, 10 * np.pi, config.N_PIXELS) + np.pi), 0, 1), sigma=4)
+
 def visualize_energy(y):
     """Effect that expands from the center with increasing sound energy"""
-    global p
+    global p, scroller, background_light
     y = np.copy(y)
     gain.update(y)
     y /= gain.value
@@ -105,48 +113,38 @@ def visualize_energy(y):
     y *= float((config.N_PIXELS // 2) - 1)
     # Map color channels according to energy in the different freq bands
     scale = 0.9
-    # r = int(np.mean(y[:len(y) // 3]**scale))
-    # g = int(np.mean(y[len(y) // 3: 2 * len(y) // 3]**scale))
-    # b = int(np.mean(y[2 * len(y) // 3:]**scale))
-    # # Assign color to different frequency regions
-    # p[0, :r] = 255.0
-    # p[0, r:] = 0.0
-    # p[1, :g] = 255.0
-    # p[1, g:] = 0.0
-    # p[2, :b] = 255.0
-    # p[2, b:] = 0.0
-    # p_filt.update(p)
-    # p = np.round(p_filt.value)
-    # # Apply substantial blur to smooth the edges
-    # p[0, :] = gaussian_filter1d(p[0, :], sigma=4.0)
-    # p[1, :] = gaussian_filter1d(p[1, :], sigma=4.0)
-    # p[2, :] = gaussian_filter1d(p[2, :], sigma=4.0)
+    r = int(np.mean(y[:len(y) // 3]**scale))
+    g = int(np.mean(y[len(y) // 3: 2 * len(y) // 3]**scale))
+    b = int(np.mean(y[2 * len(y) // 3:]**scale))
+    # Assign color to different frequency regions
+    p[0, :r] = 255.0
+    p[0, r:] = 0.0
+    p[1, :g] = 255.0
+    p[1, g:] = 0.0
+    p[2, :b] = 255.0
+    p[2, b:] = 0.0
 
-    # # r = bass, g = middle, b = top 
-    # # b from center, g from middle of half strip, r from start of strip
-    # p[0, :] = p[0, ::-1]
-    # # p[1, :] = np.concatenate((p[1, :p.shape[1] // 2][::-1], p[1, :p.shape[1] // 2]))
+    # Apply substantial blur to smooth the edges
+    p[0, :] = gaussian_filter1d(p[0, :], sigma=4.0)
+    p[1, :] = gaussian_filter1d(p[1, :], sigma=4.0)
+    p[2, :] = gaussian_filter1d(p[2, :], sigma=4.0)
 
+    p[0, :] = np.concatenate((p[0, :p.shape[1] // 2][::-1], p[0, :p.shape[1] // 2]))
 
-    # # Set the new pixel value
-    # # return np.concatenate((p[:, ::-1], p), axis=1)
+    # Set the new pixel value
+    scroller = np.int32(np.mod(time.time()*10, 300))
+    output = np.concatenate((p[:, ::-1], p), axis=1)
+    output[::2, :] = np.roll(output[::2, :], scroller, axis=1)
+    output[1, :] = np.roll(output[1, :], -scroller)
 
-    # scroller = np.int32(np.mod(time.time()*10, 300))
-    # output = np.concatenate((p[:, ::-1], p), axis=1)
-    # # output[::2, :] = np.roll(output[::2, :], scroller, axis=1)
-    # output[0, :] = np.roll(output[1, :], scroller)
-    # output[1, :] = np.roll(output[1, :], -scroller)
-    # output[2, :] = np.roll(output[1, :], scroller + 150)
-    # return output
-
-    output = np.tile((len(y[:len(y) // 3][y[:len(y) // 3] > 60]) > 0) * 255, (3, config.N_PIXELS // 2))
-    output[1, :] = 0
-    output[2, :] = 0
+    # Update and add background light
+    # background_scroller = np.int32(np.mod(time.time() * 20, 300))
+    # output[0, :] += np.roll(background_light[0, :], -background_scroller)
+    # output[1, :] += np.roll(background_light[1, :], background_scroller)
+    # output[2, :] += np.roll(background_light[2, :], background_scroller)
 
     return output
 
-    # return np.tile(y[0], (3, config.N_PIXELS // 2))
-    
 
 _prev_spectrum = np.tile(0.01, config.N_PIXELS // 2)
 
@@ -215,7 +213,7 @@ def microphone_update(audio_samples):
         mel /= mel_gain.value
         mel = mel_smoothing.update(mel)
         # Map filterbank output onto LED strip
-        output = visualization_effect(mel)
+        output = config.visualization_effect(mel)
         led.pixels = output
         led.update()
         if config.USE_GUI:
@@ -236,7 +234,8 @@ samples_per_frame = int(config.MIC_RATE / config.FPS)
 # Array containing the rolling audio sample window
 y_roll = np.random.rand(config.N_ROLLING_HISTORY, samples_per_frame) / 1e16
 
-visualization_effect = visualize_spectrum
+
+config.visualization_effect = visualize_spectrum
 """Visualization effect to display on the LED strip"""
 
 
@@ -303,32 +302,54 @@ if __name__ == '__main__':
         # Effect selection
         active_color = '#16dbeb'
         inactive_color = '#FFFFFF'
-        def energy_click(x):
-            global visualization_effect
-            visualization_effect = visualize_energy
-            energy_label.setText('Energy', color=active_color)
-            scroll_label.setText('Scroll', color=inactive_color)
-            spectrum_label.setText('Spectrum', color=inactive_color)
-        def scroll_click(x):
-            global visualization_effect
-            visualization_effect = visualize_scroll
-            energy_label.setText('Energy', color=inactive_color)
-            scroll_label.setText('Scroll', color=active_color)
-            spectrum_label.setText('Spectrum', color=inactive_color)
-        def spectrum_click(x):
-            global visualization_effect
-            visualization_effect = visualize_spectrum
-            energy_label.setText('Energy', color=inactive_color)
-            scroll_label.setText('Scroll', color=inactive_color)
-            spectrum_label.setText('Spectrum', color=active_color)
+        # def energy_click(x):
+        #     global visualization_effect
+        #     visualization_effect = visualize_energy
+        #     energy_label.setText('Energy', color=active_color)
+        #     scroll_label.setText('Scroll', color=inactive_color)
+        #     spectrum_label.setText('Spectrum', color=inactive_color)
+        # def scroll_click(x):
+        #     global visualization_effect
+        #     visualization_effect = visualize_scroll
+        #     energy_label.setText('Energy', color=inactive_color)
+        #     scroll_label.setText('Scroll', color=active_color)
+        #     spectrum_label.setText('Spectrum', color=inactive_color)
+        # def spectrum_click(x):
+            # global visualization_effect
+        #     visualization_effect = visualize_spectrum
+        #     energy_label.setText('Energy', color=inactive_color)
+        #     scroll_label.setText('Scroll', color=inactive_color)
+        #     spectrum_label.setText('Spectrum', color=active_color)
         # Create effect "buttons" (labels with click event)
+
         energy_label = pg.LabelItem('Energy')
         scroll_label = pg.LabelItem('Scroll')
         spectrum_label = pg.LabelItem('Spectrum')
-        energy_label.mousePressEvent = energy_click
-        scroll_label.mousePressEvent = scroll_click
-        spectrum_label.mousePressEvent = spectrum_click
-        energy_click(0)
+        # energy_label.mousePressEvent = energy_click
+        # scroll_label.mousePressEvent = scroll_click
+        # spectrum_label.mousePressEvent = spectrum_click
+        # energy_click(0)
+
+        import click
+        from functools import partial
+        energy_label.mousePressEvent = partial(click.energy_click, callback = visualize_energy, energy_label = energy_label, scroll_label = scroll_label, spectrum_label = spectrum_label)
+        scroll_label.mousePressEvent = partial(click.scroll_click, callback = visualize_scroll, energy_label = energy_label, scroll_label = scroll_label, spectrum_label = spectrum_label)
+        spectrum_label.mousePressEvent = partial(click.spectrum_click, callback = visualize_spectrum, energy_label = energy_label, scroll_label = scroll_label, spectrum_label = spectrum_label)
+        click.energy_click(0, visualize_energy, energy_label, scroll_label, spectrum_label)
+
+        def next():
+            if config.visualization_effect == visualize_energy:
+                click.energy_click(0, visualize_scroll, energy_label, scroll_label, spectrum_label)
+
+            elif config.visualization_effect == visualize_scroll:
+                click.energy_click(0, visualize_spectrum, energy_label, scroll_label, spectrum_label)
+
+            elif config.visualization_effect == visualize_spectrum:
+                click.energy_click(0, visualize_energy, energy_label, scroll_label, spectrum_label)
+
+        click.next = next
+
+
         # Layout
         layout.nextRow()
         layout.addItem(freq_label, colspan=3)

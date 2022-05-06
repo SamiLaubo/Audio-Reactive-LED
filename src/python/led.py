@@ -32,6 +32,7 @@ def _update_esp8266():
     global pixels, _prev_pixels
     # Truncate values and cast to integer
     pixels = np.clip(pixels, 0, 255).astype(int)
+    # pixels = (pixels / np.max(pixels) * config.MAX_BRIGHTNESS).astype(int)
     
     MAX_PIXELS_PER_PACKET = 126
     # Pixel indices

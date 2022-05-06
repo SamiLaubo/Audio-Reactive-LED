@@ -2,39 +2,18 @@
 from __future__ import print_function
 from __future__ import division
 import os
-
-DEVICE = 'esp8266'
-#DEVICE = 'pi'
-"""Device used to control LED strip. Must be 'pi',  'esp8266' or 'blinkstick'
-
-'esp8266' means that you are using an ESP8266 module to control the LED strip
-and commands will be sent to the ESP8266 over WiFi.
-
-'pi' means that you are using a Raspberry Pi as a standalone unit to process
-audio input and control the LED strip directly.
-
-'blinkstick' means that a BlinkstickPro is connected to this PC which will be used
-to control the leds connected to it.
-"""
+import time
 
 UDP_IP = '192.168.0.150'
-"""IP address of the ESP8266. Must match IP in ws2812_controller.ino"""
+"""IP address of the ESP8266. Must match IP in ws2812_controller.ino (or that written by serial port)"""
 UDP_PORT = 7777
 """Port number used for socket communication between Python and ESP8266"""
-# SOFTWARE_GAMMA_CORRECTION = False
-"""Set to False because the firmware handles gamma correction + dither"""
 
 USE_GUI = True
 """Whether or not to display a PyQtGraph GUI plot of visualization"""
 
-DISPLAY_FPS = True
-"""Whether to display the FPS when running (can reduce performance)"""
-
 N_PIXELS = 300
 """Number of pixels in the LED strip (must match ESP8266 firmware)"""
-
-# GAMMA_TABLE_PATH = os.path.join(os.path.dirname(__file__), 'gamma_table.npy')
-"""Location of the gamma correction table"""
 
 MIC_RATE = 44800
 """Sampling frequency of the microphone in Hz"""
@@ -84,3 +63,8 @@ N_ROLLING_HISTORY = 2
 
 MIN_VOLUME_THRESHOLD = 1e-7
 """No music visualization displayed if recorded audio volume below threshold"""
+
+visualization_effect = None
+switch_mode_time = time.time()
+
+MAX_BRIGHTNESS = 10
